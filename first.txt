@@ -1,2 +1,3 @@
 this is test file
-This is new Line
+This is new Line.
+To compare diff
