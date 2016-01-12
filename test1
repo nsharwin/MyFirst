@@ -1,0 +1,44 @@
+namespace TEST.DAL
+{
+    public class QueryExecutor
+    {
+        private readonly Database _db = default(Database);
+
+        private static readonly Lazy<QueryExecutor> _instance = new Lazy<QueryExecutor>(() =>
+        {
+            return new QueryExecutor();
+        });
+
+        public static QueryExecutor Instance { get { return _instance.Value; } }
+
+        public QueryExecutor()
+        {
+            DatabaseProviderFactory providerFactory = new DatabaseProviderFactory();
+            DatabaseFactory.SetDatabaseProviderFactory(providerFactory, false);
+            _db = DatabaseFactory.CreateDatabase();
+        }
+
+        public IEnumerable<dynamic> ExecuteStoredProcedure(string procName)
+        {
+            using (var command = _db.GetStoredProcCommand(procName))
+            {
+                var dataSet = _db.ExecuteDataSet(command);
+
+                foreach (DataTable table in dataSet.Tables)
+                {
+                    foreach (DataRow row in table.Rows)
+                    {
+                        ExpandoObject dynamicDto = new ExpandoObject();
+
+                        foreach (DataColumn column in table.Columns)
+                        {
+                            //With expandobject class, we can add new property like javascript's way.                           
+                            ((IDictionary<String, Object>)dynamicDto).Add(column.ColumnName, row[column.ColumnName]);
+                        }
+
+                        yield return dynamicDto;
+                    }                   
+                }
+            }
+        }
+    }
